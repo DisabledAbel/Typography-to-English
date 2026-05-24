@@ -67,7 +67,8 @@ fn apply_contextual_quotes(text: &str, replacements: &mut Vec<Replacement>) -> S
     let mut double_count = 0;
     let mut single_count = 0;
 
-    for ch in text.chars() {
+    let mut chars = text.chars().peekable();
+    while let Some(ch) = chars.next() {
         match ch {
             '"' => {
                 result.push_str(if double_quote_open { "\u{201c}" } else { "\u{201d}" });
@@ -75,8 +76,18 @@ fn apply_contextual_quotes(text: &str, replacements: &mut Vec<Replacement>) -> S
                 double_count += 1;
             }
             '\'' => {
-                result.push_str(if single_quote_open { "\u{2018}" } else { "\u{2019}" });
-                single_quote_open = !single_quote_open;
+                // Check if this is an apostrophe (surrounded by word characters)
+                let prev_is_word = result.chars().last().map_or(false, |c| c.is_alphanumeric());
+                let next_is_word = chars.peek().map_or(false, |c| c.is_alphanumeric());
+
+                if prev_is_word || next_is_word {
+                    // It's an apostrophe - use right single quote
+                    result.push_str("\u{2019}");
+                } else {
+                    // It's a paired quote - alternate between opening and closing
+                    result.push_str(if single_quote_open { "\u{2018}" } else { "\u{2019}" });
+                    single_quote_open = !single_quote_open;
+                }
                 single_count += 1;
             }
             _ => result.push(ch),
