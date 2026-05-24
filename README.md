@@ -1,4 +1,4 @@
-# Typography to English
+# Typography Translator (Two-way)
 
 A Rust-based typography-to-English translator with CLI outputs (`plain`, `json`, `markdown`, `toon`) plus a GitHub Pages-compatible web UI.
 
@@ -15,9 +15,9 @@ The Pages web UI is fully client-side JavaScript and does not require the Rust H
 ## CLI usage
 
 ```bash
-cargo run -- --input '“Rust™ — ﬁne… really”' --format json
-cargo run -- --input '“Rust™ — ﬁne… really”' --format markdown
-cargo run -- --input '“Rust™ — ﬁne… really”' --format toon
+cargo run -- --input '“Rust™ — ﬁne… really”' --format json --direction typography-to-english
+cargo run -- --input '“Rust™ — ﬁne… really”' --format markdown --direction typography-to-english
+cargo run -- --input '"Rust..." (TM) is fine' --format plain --direction english-to-typography
 ```
 
 ## Local web server usage (optional)
