@@ -82,10 +82,12 @@
       <textarea id="input" placeholder="Paste text like: “Rust™ — ﬁne… really”"></textarea>
       <div class="row">
         <button id="convert">Translate</button>
-        <select id="direction">
-          <option value="typography-to-english">Typography → English</option>
-          <option value="english-to-typography">English → Typography</option>
-        </select>
+        <label for="direction" class="label">Direction:
+          <select id="direction">
+            <option value="typography-to-english">Typography → English</option>
+            <option value="english-to-typography">English → Typography</option>
+          </select>
+        </label>
         <span class="label">Client-side only (GitHub Pages compatible)</span>
       </div>
       <label class="label" for="output">Translated</label>
@@ -104,7 +106,7 @@
 ];
 
     const englishToTypographyMap = [
-      ["\"", "“"], ["\"", "”"], ["'", "‘"], ["'", "’"], [" -- ", "—"], [" - ", "–"],
+      [" -- ", "—"], [" - ", "–"],
       ["...", "…"], ["*", "•"], ["(TM)", "™"], ["(R)", "®"], ["(C)", "©"], ["1/2", "½"],
       ["1/4", "¼"], ["3/4", "¾"], ["fi", "ﬁ"], ["fl", "ﬂ"]
     ];
@@ -113,17 +115,63 @@
       return s.split(/\s+/).filter(Boolean).join(' ').trim();
     }
 
+    function applyContextualQuotes(text, replacements) {
+      let result = text;
+      let doubleQuoteOpen = true;
+      let singleQuoteOpen = true;
+
+      // Replace double quotes with context-aware typographic quotes
+      result = result.replace(/"/g, () => {
+        const replacement = doubleQuoteOpen ? """ : """;
+        doubleQuoteOpen = !doubleQuoteOpen;
+        return replacement;
+      });
+
+      // Replace single quotes with context-aware typographic quotes
+      result = result.replace(/'/g, () => {
+        const replacement = singleQuoteOpen ? "'" : "'";
+        singleQuoteOpen = !singleQuoteOpen;
+        return replacement;
+      });
+
+      // Count replacements
+      const doubleCount = (text.match(/"/g) || []).length;
+      const singleCount = (text.match(/'/g) || []).length;
+
+      if (doubleCount > 0) {
+        replacements.push({ from: '"', to: '"/"', count: doubleCount });
+      }
+      if (singleCount > 0) {
+        replacements.push({ from: "'", to: "'/\u2019", count: singleCount });
+      }
+
+      return result;
+    }
+
     function translate(input, direction) {
       let text = input;
       const replacements = [];
 
-      const map = direction === "english-to-typography" ? englishToTypographyMap : typographyToEnglishMap;
+      if (direction === "english-to-typography") {
+        // Apply contextual quotes first
+        text = applyContextualQuotes(text, replacements);
 
-      for (const [from, to] of map) {
-        const count = text.split(from).length - 1;
-        if (count > 0) {
-          text = text.split(from).join(to);
-          replacements.push({ from, to, count });
+        // Then apply other replacements
+        for (const [from, to] of englishToTypographyMap) {
+          const count = text.split(from).length - 1;
+          if (count > 0) {
+            text = text.split(from).join(to);
+            replacements.push({ from, to, count });
+          }
+        }
+      } else {
+        // Typography to English: apply all replacements
+        for (const [from, to] of typographyToEnglishMap) {
+          const count = text.split(from).length - 1;
+          if (count > 0) {
+            text = text.split(from).join(to);
+            replacements.push({ from, to, count });
+          }
         }
       }
 
