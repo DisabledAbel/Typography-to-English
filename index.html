@@ -139,11 +139,16 @@
       return result;
     }
 
+    function normalizeDirection(directionMode) {
+      return directionMode === "typography-to-english" ? "typography-to-english" : "english-to-typography";
+    }
+
     function translate(inputText, directionMode) {
+      const mode = normalizeDirection(directionMode);
       let text = inputText;
       const replacements = [];
 
-      if (directionMode === "english-to-typography") {
+      if (mode === "english-to-typography") {
         text = applyContextualQuotes(text, replacements);
         for (const [from, to] of englishToTypographyMap) {
           const count = text.split(from).length - 1;
@@ -152,7 +157,7 @@
             replacements.push({ from, to, count });
           }
         }
-      } else {
+      } else if (mode === "typography-to-english") {
         for (const [from, to] of typographyToEnglishMap) {
           const count = text.split(from).length - 1;
           if (count > 0) {
@@ -188,10 +193,12 @@
 
       function render() {
         try {
-          const result = translate(input.value || '', direction.value);
+          const selectedDirection = normalizeDirection(direction.value);
+          if (direction.value !== selectedDirection) direction.value = selectedDirection;
+          const result = translate(input.value || '', selectedDirection);
           output.textContent = result.translated;
           json.textContent = JSON.stringify(result, null, 2);
-          if (status) status.textContent = `Updated (${direction.value}).`;
+          if (status) status.textContent = `Updated (${selectedDirection}).`;
         } catch (err) {
           if (status) status.textContent = `Translation error: ${String(err)}`;
         }
