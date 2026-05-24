@@ -60,63 +60,74 @@ fn english_map() -> Vec<(&'static str, &'static str)> {
     ]
 }
 
+fn apply_contextual_quotes(text: &str, replacements: &mut Vec<Replacement>) -> String {
+    let mut result = String::new();
+    let mut double_quote_open = true;
+    let mut single_quote_open = true;
+    let mut double_count = 0;
+    let mut single_count = 0;
 
-fn convert_straight_quotes_to_typography(input: &str) -> String {
-    let mut out = String::with_capacity(input.len());
-    let mut chars = input.chars().peekable();
-
-    while let Some(ch) = chars.next() {
-        if ch == '"' {
-            if let Some(next_quote_pos) = chars.clone().position(|c| c == '"') {
-                out.push('“');
-                for _ in 0..next_quote_pos {
-                    if let Some(inner) = chars.next() {
-                        out.push(inner);
-                    }
-                }
-                let _ = chars.next();
-                out.push('”');
-                continue;
+    for ch in text.chars() {
+        match ch {
+            '"' => {
+                result.push_str(if double_quote_open { "\u{201c}" } else { "\u{201d}" });
+                double_quote_open = !double_quote_open;
+                double_count += 1;
             }
-        }
-
-        if ch == '\'' {
-            if let Some(next_quote_pos) = chars.clone().position(|c| c == '\'') {
-                out.push('‘');
-                for _ in 0..next_quote_pos {
-                    if let Some(inner) = chars.next() {
-                        out.push(inner);
-                    }
-                }
-                let _ = chars.next();
-                out.push('’');
-                continue;
+            '\'' => {
+                result.push_str(if single_quote_open { "\u{2018}" } else { "\u{2019}" });
+                single_quote_open = !single_quote_open;
+                single_count += 1;
             }
+            _ => result.push(ch),
         }
-
-        out.push(ch);
     }
 
-    out
+    if double_count > 0 {
+        replacements.push(Replacement {
+            from: "\"",
+            to: "\u{201c}/\u{201d}",
+            count: double_count,
+        });
+    }
+    if single_count > 0 {
+        replacements.push(Replacement {
+            from: "'",
+            to: "\u{2018}/\u{2019}",
+            count: single_count,
+        });
+    }
+
+    result
 }
 
 fn translate(input: &str, direction: Direction) -> Translation {
-    let mut text = match direction {
-        Direction::TypographyToEnglish => input.to_string(),
-        Direction::EnglishToTypography => convert_straight_quotes_to_typography(input),
-    };
+    let mut text = input.to_string();
     let mut replacements = Vec::new();
 
-    let map = match direction {
-        Direction::TypographyToEnglish => english_map(),
-        Direction::EnglishToTypography => typography_map(),
-    };
+    match direction {
+        Direction::EnglishToTypography => {
+            // Apply contextual quotes first
+            text = apply_contextual_quotes(&text, &mut replacements);
 
-    for (from, to) in map {
-        let count = text.matches(from).count();
-        if count > 0 {
-            text = text.replace(from, to);
-            replacements.push(Replacement { from, to, count });
+            // Then apply other replacements
+            for (from, to) in typography_map() {
+                let count = text.matches(from).count();
+                if count > 0 {
+                    text = text.replace(from, to);
+                    replacements.push(Replacement { from, to, count });
+                }
+            }
+        }
+        Direction::TypographyToEnglish => {
+            // Apply all replacements
+            for (from, to) in english_map() {
+                let count = text.matches(from).count();
+                if count > 0 {
+                    text = text.replace(from, to);
+                    replacements.push(Replacement { from, to, count });
+                }
+            }
         }
     }
 
