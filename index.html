@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Typography to English</title>
+  <title>Typography Translator</title>
   <style>
     :root {
       --bg: #1f140f;
@@ -75,13 +75,17 @@
 </head>
 <body>
   <main class="card">
-    <h1>Typography to English</h1>
-    <p>Simple, clean, dark-orange converter that works on GitHub Pages (no backend required).</p>
+    <h1>Typography Translator</h1>
+    <p>Two-way converter: Typography ⇄ English, fully client-side for GitHub Pages.</p>
     <div class="grid">
       <label class="label" for="input">Input</label>
       <textarea id="input" placeholder="Paste text like: “Rust™ — ﬁne… really”"></textarea>
       <div class="row">
-        <button id="convert">Translate</button>
+        <button id="convert" type="button">Translate</button>
+        <select id="direction">
+          <option value="typography-to-english">Typography → English</option>
+          <option value="english-to-typography">English → Typography</option>
+        </select>
         <span class="label">Client-side only (GitHub Pages compatible)</span>
       </div>
       <label class="label" for="output">Translated</label>
@@ -93,21 +97,39 @@
   </main>
 
   <script>
-    const typographyMap = [
+    const typographyToEnglishMap = [
       ["“", '"'], ["”", '"'], ["‘", "'"], ["’", "'"], ["—", " -- "], ["–", " - "],
       ["…", "..."], ["•", "*"], ["™", "(TM)"], ["®", "(R)"], ["©", "(C)"], ["½", "1/2"],
       ["¼", "1/4"], ["¾", "3/4"], ["ﬁ", "fi"], ["ﬂ", "fl"], ["\u00A0", " "]
     ];
 
+    const englishToTypographyMap = [
+      [" -- ", "—"], [" - ", "–"], ["...", "…"], ["(TM)", "™"], ["(R)", "®"], ["(C)", "©"],
+      ["1/2", "½"], ["1/4", "¼"], ["3/4", "¾"], ["fi", "ﬁ"], ["fl", "ﬂ"], ["*", "•"]
+    ];
+
     function normalizeSpacing(s) {
-      return s.split(/\s+/).filter(Boolean).join(' ').trim();
+      return s.split(/\s+/).filter(Boolean).join(" ").trim();
     }
 
-    function translate(input) {
-      let text = input;
-      const replacements = [];
+    function convertStraightQuotesToTypography(text) {
+      return text.replace(/"([^"]*)"/g, "“$1”").replace(/'([^']*)'/g, "‘$1’");
+    }
 
-      for (const [from, to] of typographyMap) {
+    function translate(inputText, direction) {
+      const replacements = [];
+      let text = inputText;
+
+      if (direction === "english-to-typography") {
+        const beforeQuotes = text;
+        text = convertStraightQuotesToTypography(text);
+        if (text !== beforeQuotes) {
+          replacements.push({ from: '"..." / \'...\'', to: "typographic quotes", count: 1 });
+        }
+      }
+
+      const map = direction === "english-to-typography" ? englishToTypographyMap : typographyToEnglishMap;
+      for (const [from, to] of map) {
         const count = text.split(from).length - 1;
         if (count > 0) {
           text = text.split(from).join(to);
@@ -116,21 +138,39 @@
       }
 
       return {
-        original: input,
+        original: inputText,
         translated: normalizeSpacing(text),
         replacements
       };
     }
 
-    const input = document.getElementById('input');
-    const output = document.getElementById('output');
-    const json = document.getElementById('json');
+    function initTranslator() {
+      const input = document.getElementById("input");
+      const output = document.getElementById("output");
+      const json = document.getElementById("json");
+      const direction = document.getElementById("direction");
+      const convert = document.getElementById("convert");
 
-    document.getElementById('convert').addEventListener('click', () => {
-      const result = translate(input.value || '');
-      output.textContent = result.translated;
-      json.textContent = JSON.stringify(result, null, 2);
-    });
+      if (!input || !output || !json || !direction || !convert) {
+        return;
+      }
+
+      const runTranslation = () => {
+        const result = translate(input.value || "", direction.value);
+        output.textContent = result.translated;
+        json.textContent = JSON.stringify(result, null, 2);
+      };
+
+      convert.addEventListener("click", runTranslation);
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+          runTranslation();
+        }
+      });
+      runTranslation();
+    }
+
+    document.addEventListener("DOMContentLoaded", initTranslator);
   </script>
 </body>
 </html>
