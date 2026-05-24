@@ -1,13 +1,14 @@
 use std::env;
+use serde::Serialize;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 struct Translation {
     original: String,
     translated: String,
     replacements: Vec<Replacement>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 struct Replacement {
     from: &'static str,
     to: &'static str,
@@ -64,31 +65,8 @@ fn normalize_spacing(input: &str) -> String {
         .to_string()
 }
 
-fn escape_json(s: &str) -> String {
-    s.replace('\\', "\\\\").replace('"', "\\\"")
-}
-
 fn to_json(t: &Translation) -> String {
-    let replacements = t
-        .replacements
-        .iter()
-        .map(|r| {
-            format!(
-                "{{\"from\":\"{}\",\"to\":\"{}\",\"count\":{}}}",
-                escape_json(r.from),
-                escape_json(r.to),
-                r.count
-            )
-        })
-        .collect::<Vec<_>>()
-        .join(",");
-
-    format!(
-        "{{\"original\":\"{}\",\"translated\":\"{}\",\"replacements\":[{}]}}",
-        escape_json(&t.original),
-        escape_json(&t.translated),
-        replacements
-    )
+    serde_json::to_string_pretty(t).unwrap_or_else(|e| format!("JSON serialization error: {}", e))
 }
 
 fn to_markdown(t: &Translation) -> String {
@@ -111,6 +89,7 @@ fn to_markdown(t: &Translation) -> String {
 }
 
 fn to_toon(t: &Translation) -> String {
+    let total_swaps: usize = t.replacements.iter().map(|r| r.count).sum();
     format!(
         "POW! Typography translated!\n\
          --------------------------------\n\
@@ -121,7 +100,7 @@ fn to_toon(t: &Translation) -> String {
          ZAP! Done.\n",
         t.original,
         t.translated,
-        t.replacements.len()
+        total_swaps
     )
 }
 
@@ -150,7 +129,7 @@ fn parse_args(args: &[String]) -> Result<(String, String), String> {
                 }
                 format = args[i].to_lowercase();
             }
-            "--help" | "-h" => return Err(usage().to_string()),
+            "--help" | "-h" => return Ok(("--help".to_string(), String::new())),
             other => return Err(format!("Unknown argument: {other}")),
         }
         i += 1;
@@ -163,7 +142,13 @@ fn parse_args(args: &[String]) -> Result<(String, String), String> {
 fn main() {
     let args: Vec<String> = env::args().collect();
     let (input, format) = match parse_args(&args) {
-        Ok(v) => v,
+        Ok(v) => {
+            if v.0 == "--help" {
+                println!("{}", usage());
+                std::process::exit(0);
+            }
+            v
+        }
         Err(e) => {
             eprintln!("{e}\n{}", usage());
             std::process::exit(1);
