@@ -76,7 +76,7 @@
 <body>
   <main class="card">
     <h1>Typography Translator</h1>
-    <p>Two-way converter: Typography ⇄ English, fully client-side (Vercel-ready).</p>
+    <p>Two-way converter: Typography ⇄ English, fully client-side (Vercel-ready). Tip: use quotes, --, ..., (TM), fi/fl, etc. to see changes.</p>
     <div class="grid">
       <label class="label" for="input">Input</label>
       <textarea id="input" placeholder='Type text like: "Rust..." (TM)'></textarea>
@@ -198,7 +198,12 @@
           const result = translate(input.value || '', selectedDirection);
           output.textContent = result.translated;
           json.textContent = JSON.stringify(result, null, 2);
-          if (status) status.textContent = `Updated (${selectedDirection}).`;
+          const replacementCount = result.replacements.reduce((sum, item) => sum + item.count, 0);
+          if (status) {
+            status.textContent = replacementCount > 0
+              ? `Updated (${selectedDirection}) with ${replacementCount} replacement${replacementCount === 1 ? '' : 's'}.`
+              : `Updated (${selectedDirection}) with no convertible typography tokens.`;
+          }
         } catch (err) {
           if (status) status.textContent = `Translation error: ${String(err)}`;
         }
