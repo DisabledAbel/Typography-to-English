@@ -81,10 +81,13 @@
       <label class="label" for="input">Input</label>
       <textarea id="input" placeholder="Paste text like: “Rust™ — ﬁne… really”"></textarea>
       <div class="row">
-        <select id="direction">
-          <option value="typography-to-english">Typography → English</option>
-          <option value="english-to-typography">English → Typography</option>
-        </select>
+        <button id="convert">Translate</button>
+        <label for="direction" class="label">Direction:
+          <select id="direction">
+            <option value="typography-to-english">Typography → English</option>
+            <option value="english-to-typography">English → Typography</option>
+          </select>
+        </label>
         <span class="label">Client-side only (GitHub Pages compatible)</span>
       </div>
       <label class="label" for="output">Translated</label>
@@ -100,6 +103,17 @@
       ["“", '"'], ["”", '"'], ["‘", "'"], ["’", "'"], ["—", " -- "], ["–", " - "],
       ["…", "..."], ["•", "*"], ["™", "(TM)"], ["®", "(R)"], ["©", "(C)"], ["½", "1/2"],
       ["¼", "1/4"], ["¾", "3/4"], ["ﬁ", "fi"], ["ﬂ", "fl"], ["\u00A0", " "]
+];
+
+    const englishToTypographyMap = [
+      [" -- ", "—"], [" - ", "–"],
+      ["...", "…"], ["*", "•"], ["(TM)", "™"], ["(R)", "®"], ["(C)", "©"], ["1/2", "½"],
+      ["1/4", "¼"], ["3/4", "¾"], ["fi", "ﬁ"], ["fl", "ﬂ"]
+    ];
+
+    const englishToTypographyMap = [
+      [" -- ", "—"], [" - ", "–"], ["...", "…"], ["(TM)", "™"], ["(R)", "®"], ["(C)", "©"],
+      ["1/2", "½"], ["1/4", "¼"], ["3/4", "¾"], ["fi", "ﬁ"], ["fl", "ﬂ"], ["*", "•"]
     ];
 
     const englishToTypographyMap = [
@@ -111,28 +125,63 @@
       return s.split(/\s+/).filter(Boolean).join(" ").trim();
     }
 
-    function convertStraightQuotesToTypography(text) {
-      return text.replace(/"([^"]*)"/g, "“$1”").replace(/'([^']*)'/g, "‘$1’");
-    }
+    function applyContextualQuotes(text, replacements) {
+      let result = text;
+      let doubleQuoteOpen = true;
+      let singleQuoteOpen = true;
 
-    function translate(inputText, direction) {
-      const replacements = [];
-      let text = inputText;
+      // Replace double quotes with context-aware typographic quotes
+      result = result.replace(/"/g, () => {
+        const replacement = doubleQuoteOpen ? """ : """;
+        doubleQuoteOpen = !doubleQuoteOpen;
+        return replacement;
+      });
 
-      if (direction === "english-to-typography") {
-        const beforeQuotes = text;
-        text = convertStraightQuotesToTypography(text);
-        if (text !== beforeQuotes) {
-          replacements.push({ from: '"..." / \'...\'', to: "typographic quotes", count: 1 });
-        }
+      // Replace single quotes with context-aware typographic quotes
+      result = result.replace(/'/g, () => {
+        const replacement = singleQuoteOpen ? "'" : "'";
+        singleQuoteOpen = !singleQuoteOpen;
+        return replacement;
+      });
+
+      // Count replacements
+      const doubleCount = (text.match(/"/g) || []).length;
+      const singleCount = (text.match(/'/g) || []).length;
+
+      if (doubleCount > 0) {
+        replacements.push({ from: '"', to: '"/"', count: doubleCount });
+      }
+      if (singleCount > 0) {
+        replacements.push({ from: "'", to: "'/\u2019", count: singleCount });
       }
 
-      const map = direction === "english-to-typography" ? englishToTypographyMap : typographyToEnglishMap;
-      for (const [from, to] of map) {
-        const count = text.split(from).length - 1;
-        if (count > 0) {
-          text = text.split(from).join(to);
-          replacements.push({ from, to, count });
+      return result;
+    }
+
+    function translate(input, direction) {
+      let text = input;
+      const replacements = [];
+
+      if (direction === "english-to-typography") {
+        // Apply contextual quotes first
+        text = applyContextualQuotes(text, replacements);
+
+        // Then apply other replacements
+        for (const [from, to] of englishToTypographyMap) {
+          const count = text.split(from).length - 1;
+          if (count > 0) {
+            text = text.split(from).join(to);
+            replacements.push({ from, to, count });
+          }
+        }
+      } else {
+        // Typography to English: apply all replacements
+        for (const [from, to] of typographyToEnglishMap) {
+          const count = text.split(from).length - 1;
+          if (count > 0) {
+            text = text.split(from).join(to);
+            replacements.push({ from, to, count });
+          }
         }
       }
 
@@ -143,28 +192,16 @@
       };
     }
 
-    function initTranslator() {
-      const input = document.getElementById("input");
-      const output = document.getElementById("output");
-      const json = document.getElementById("json");
-      const direction = document.getElementById("direction");
+    const input = document.getElementById('input');
+    const output = document.getElementById('output');
+    const json = document.getElementById('json');
+    const direction = document.getElementById('direction');
 
-      if (!input || !output || !json || !direction) {
-        return;
-      }
-
-      const runTranslation = () => {
-        const result = translate(input.value || "", direction.value);
-        output.textContent = result.translated;
-        json.textContent = JSON.stringify(result, null, 2);
-      };
-
-      input.addEventListener("input", runTranslation);
-      direction.addEventListener("change", runTranslation);
-      runTranslation();
-    }
-
-    document.addEventListener("DOMContentLoaded", initTranslator);
+    document.getElementById('convert').addEventListener('click', () => {
+      const result = translate(input.value || '', direction.value);
+      output.textContent = result.translated;
+      json.textContent = JSON.stringify(result, null, 2);
+    });
   </script>
 </body>
 </html>
