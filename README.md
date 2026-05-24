@@ -1,6 +1,6 @@
 # Typography Translator (Two-way)
 
-A Rust-based typography-to-English translator with CLI outputs (`plain`, `json`, `markdown`, `toon`) plus a GitHub Pages-compatible web UI.
+A Rust-based English ↔ Typography translator with CLI outputs (`plain`, `json`, `markdown`, `toon`) plus a GitHub Pages-compatible web UI.
 
 ## GitHub Pages setup
 
