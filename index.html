@@ -48,17 +48,6 @@
       resize: vertical;
     }
     .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-    button {
-      border: 0;
-      border-radius: 10px;
-      background: var(--accent);
-      color: #28170d;
-      padding: 11px 16px;
-      font-weight: 700;
-      cursor: pointer;
-      width: 160px;
-    }
-    button:hover { background: var(--accent-soft); }
     pre {
       background: #1a110d;
       border: 1px solid var(--border);
@@ -79,9 +68,8 @@
     <p>Two-way converter: Typography ⇄ English, fully client-side (Vercel-ready).</p>
     <div class="grid">
       <label class="label" for="input">Input</label>
-      <textarea id="input" placeholder='Type text like: "Rust..." (TM)'></textarea>
+      <textarea id="input" placeholder='Paste text like: “Rust™ — ﬁne… really”'></textarea>
       <div class="row">
-        <button id="convert" type="button">Translate</button>
         <label for="direction" class="label">Direction:
           <select id="direction">
             <option value="english-to-typography" selected>English → Typography</option>
@@ -175,28 +163,15 @@
       const direction = document.getElementById('direction');
       const convert = document.getElementById('convert');
 
-      if (!input || !output || !json || !direction) {
-        return;
-      }
-
-      function render() {
-        const result = translate(input.value || '', direction.value);
-        output.textContent = result.translated;
-        json.textContent = JSON.stringify(result, null, 2);
-      }
-
-      input.addEventListener('input', render);
-      input.addEventListener('paste', () => setTimeout(render, 0));
-      direction.addEventListener('change', render);
-      if (convert) convert.addEventListener('click', render);
-      render();
+    function render() {
+      const result = translate(input.value || '', direction.value);
+      output.textContent = result.translated;
+      json.textContent = JSON.stringify(result, null, 2);
     }
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', setupTranslator);
-    } else {
-      setupTranslator();
-    }
+    input.addEventListener('input', render);
+    direction.addEventListener('change', render);
+    render();
   </script>
 </body>
 </html>
