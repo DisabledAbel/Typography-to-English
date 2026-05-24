@@ -156,10 +156,12 @@
       };
     }
 
-    const input = document.getElementById('input');
-    const output = document.getElementById('output');
-    const json = document.getElementById('json');
-    const direction = document.getElementById('direction');
+    function setupTranslator() {
+      const input = document.getElementById('input');
+      const output = document.getElementById('output');
+      const json = document.getElementById('json');
+      const direction = document.getElementById('direction');
+      const convert = document.getElementById('convert');
 
     function render() {
       const result = translate(input.value || '', direction.value);
