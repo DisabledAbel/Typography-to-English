@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Typography to English</title>
+  <style>
+    :root {
+      --bg: #1f140f;
+      --panel: #2b1b14;
+      --accent: #ff8c2a;
+      --accent-soft: #ffb066;
+      --text: #f8efe8;
+      --muted: #d9bba4;
+      --border: #5c3a24;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: linear-gradient(140deg, #180f0a 0%, #2d1a12 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .card {
+      width: min(950px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 16px 44px rgba(0,0,0,.35);
+    }
+    h1 { margin: 0 0 8px; color: var(--accent); }
+    p { margin: 0 0 16px; color: var(--muted); }
+    .grid { display: grid; gap: 14px; }
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #1a110d;
+      color: var(--text);
+      padding: 12px;
+      font-size: 15px;
+      resize: vertical;
+    }
+    button {
+      border: 0;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #28170d;
+      padding: 11px 16px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 160px;
+    }
+    button:hover { background: var(--accent-soft); }
+    .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    pre {
+      background: #1a110d;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      margin: 0;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      color: #ffd9b2;
+    }
+    .label { color: var(--muted); font-size: 13px; }
+    .footnote { font-size: 12px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Typography to English</h1>
+    <p>Simple, clean, dark-orange converter that works on GitHub Pages (no backend required).</p>
+    <div class="grid">
+      <label class="label" for="input">Input</label>
+      <textarea id="input" placeholder="Paste text like: “Rust™ — ﬁne… really”"></textarea>
+      <div class="row">
+        <button id="convert">Translate</button>
+        <span class="label">Client-side only (GitHub Pages compatible)</span>
+      </div>
+      <label class="label" for="output">Translated</label>
+      <pre id="output"></pre>
+      <label class="label" for="json">JSON</label>
+      <pre id="json"></pre>
+      <p class="footnote">Tip: set GitHub Pages source to the <code>docs/</code> folder.</p>
+    </div>
+  </main>
+
+  <script>
+    const typographyMap = [
+      ["“", '"'], ["”", '"'], ["‘", "'"], ["’", "'"], ["—", " -- "], ["–", " - "],
+      ["…", "..."], ["•", "*"], ["™", "(TM)"], ["®", "(R)"], ["©", "(C)"], ["½", "1/2"],
+      ["¼", "1/4"], ["¾", "3/4"], ["ﬁ", "fi"], ["ﬂ", "fl"], ["\u00A0", " "]
+    ];
+
+    function normalizeSpacing(s) {
+      return s.split(/\s+/).filter(Boolean).join(' ').trim();
+    }
+
+    function translate(input) {
+      let text = input;
+      const replacements = [];
+
+      for (const [from, to] of typographyMap) {
+        const count = text.split(from).length - 1;
+        if (count > 0) {
+          text = text.split(from).join(to);
+          replacements.push({ from, to, count });
+        }
+      }
+
+      return {
+        original: input,
+        translated: normalizeSpacing(text),
+        replacements
+      };
+    }
+
+    const input = document.getElementById('input');
+    const output = document.getElementById('output');
+    const json = document.getElementById('json');
+
+    document.getElementById('convert').addEventListener('click', () => {
+      const result = translate(input.value || '');
+      output.textContent = result.translated;
+      json.textContent = JSON.stringify(result, null, 2);
+    });
+  </script>
+</body>
+</html>
