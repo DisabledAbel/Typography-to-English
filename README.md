@@ -25,3 +25,12 @@ cargo run -- --input '"Rust..." (TM) is fine' --format plain --direction english
 ```bash
 cargo run -- --serve --port 8080
 ```
+
+
+## Web UI verification helper
+
+Run this before pushing to ensure the Pages UI is synced and works in real time:
+
+```bash
+./scripts/check_web_ui.sh
+```
