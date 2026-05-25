@@ -48,6 +48,17 @@
       resize: vertical;
     }
     .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .output-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .button {
+      background: var(--accent);
+      color: #1a110d;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .button:hover { background: var(--accent-soft); }
     pre {
       background: #1a110d;
       border: 1px solid var(--border);
@@ -75,10 +86,12 @@
             <option value="english-to-typography" selected>Typography output</option>
           </select>
         </label>
-        <button id="convert" type="button">Convert</button>
         <span class="label">Client-side only (Vercel static deploy compatible)</span>
       </div>
-      <label class="label" for="output">Translated</label>
+      <div class="output-row">
+        <label class="label" for="output">Translated</label>
+        <button id="copy-output" type="button" class="button">Copy</button>
+      </div>
       <pre id="output"></pre>
       <label class="label" for="json">JSON</label>
       <pre id="json"></pre>
@@ -186,7 +199,7 @@
       const output = document.getElementById('output');
       const json = document.getElementById('json');
       const direction = document.getElementById('direction');
-      const convert = document.getElementById('convert');
+      const copyOutput = document.getElementById('copy-output');
       function render() {
         const result = translate(input.value || '', direction.value);
         output.textContent = result.translated;
@@ -195,7 +208,10 @@
 
       input.addEventListener('input', render);
       direction.addEventListener('change', render);
-      convert.addEventListener('click', render);
+      copyOutput.addEventListener('click', async () => {
+        if (!output.textContent) return;
+        await navigator.clipboard.writeText(output.textContent);
+      });
       render();
     }
 
