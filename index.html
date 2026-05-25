@@ -72,10 +72,10 @@
       <div class="row">
         <label for="direction" class="label">Direction:
           <select id="direction">
-            <option value="english-to-typography" selected>English → Typography</option>
-            <option value="typography-to-english">Typography → English</option>
+            <option value="english-to-typography" selected>Typography output</option>
           </select>
         </label>
+        <button id="convert" type="button">Convert</button>
         <span class="label">Client-side only (Vercel static deploy compatible)</span>
       </div>
       <label class="label" for="output">Translated</label>
@@ -99,6 +99,24 @@
 
     function normalizeSpacing(s) {
       return s.split(/\s+/).filter(Boolean).join(" ").trim();
+    }
+
+    function stylizeAsciiLetters(text) {
+      let changed = false;
+      let output = "";
+      for (const ch of text) {
+        const code = ch.codePointAt(0);
+        if (code >= 65 && code <= 90) {
+          output += String.fromCodePoint(0x1D400 + (code - 65));
+          changed = true;
+        } else if (code >= 97 && code <= 122) {
+          output += String.fromCodePoint(0x1D41A + (code - 97));
+          changed = true;
+        } else {
+          output += ch;
+        }
+      }
+      return changed ? output : null;
     }
 
     function applyContextualQuotes(text, replacements) {
@@ -139,6 +157,13 @@
             replacements.push({ from, to, count });
           }
         }
+        if (replacements.length === 0) {
+          const stylized = stylizeAsciiLetters(text);
+          if (stylized !== null) {
+            text = stylized;
+            replacements.push({ from: "A-Z/a-z", to: "Mathematical bold letters", count: text.length });
+          }
+        }
       } else {
         for (const [from, to] of typographyToEnglishMap) {
           const count = text.split(from).length - 1;
@@ -162,16 +187,23 @@
       const json = document.getElementById('json');
       const direction = document.getElementById('direction');
       const convert = document.getElementById('convert');
+      function render() {
+        const result = translate(input.value || '', "english-to-typography");
+        output.textContent = result.translated;
+        json.textContent = JSON.stringify(result, null, 2);
+      }
 
-    function render() {
-      const result = translate(input.value || '', direction.value);
-      output.textContent = result.translated;
-      json.textContent = JSON.stringify(result, null, 2);
+      input.addEventListener('input', render);
+      direction.addEventListener('change', render);
+      convert.addEventListener('click', render);
+      render();
     }
 
-    input.addEventListener('input', render);
-    direction.addEventListener('change', render);
-    render();
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setupTranslator);
+    } else {
+      setupTranslator();
+    }
   </script>
 </body>
 </html>

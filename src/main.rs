@@ -129,6 +129,18 @@ fn translate(input: &str, direction: Direction) -> Translation {
                     replacements.push(Replacement { from, to, count });
                 }
             }
+
+            if replacements.is_empty() {
+                if let Some(stylized) = stylize_ascii_letters(&text) {
+                    let letter_count = stylized.chars().filter(|c| c.is_alphabetic()).count();
+                    text = stylized;
+                    replacements.push(Replacement {
+                        from: "A-Z/a-z",
+                        to: "Mathematical bold letters",
+                        count: letter_count,
+                    });
+                }
+            }
         }
         Direction::TypographyToEnglish => {
             // Apply all replacements
@@ -151,6 +163,32 @@ fn translate(input: &str, direction: Direction) -> Translation {
 
 fn normalize_spacing(input: &str) -> String {
     input.split_whitespace().collect::<Vec<_>>().join(" ").trim().to_string()
+}
+
+fn stylize_ascii_letters(input: &str) -> Option<String> {
+    let mut changed = false;
+    let mut output = String::with_capacity(input.len());
+
+    for ch in input.chars() {
+        if ch.is_ascii_uppercase() {
+            let offset = (ch as u32) - ('A' as u32);
+            if let Some(styled) = char::from_u32(0x1D400 + offset) {
+                output.push(styled);
+                changed = true;
+                continue;
+            }
+        } else if ch.is_ascii_lowercase() {
+            let offset = (ch as u32) - ('a' as u32);
+            if let Some(styled) = char::from_u32(0x1D41A + offset) {
+                output.push(styled);
+                changed = true;
+                continue;
+            }
+        }
+        output.push(ch);
+    }
+
+    changed.then_some(output)
 }
 
 fn to_json(t: &Translation) -> String {
@@ -196,8 +234,8 @@ fn to_toon(t: &Translation, direction: Direction) -> String {
 
 fn direction_label(direction: Direction) -> &'static str {
     match direction {
-        Direction::TypographyToEnglish => "Typography to English",
-        Direction::EnglishToTypography => "English to Typography",
+        Direction::TypographyToEnglish => "Typography output (Typography mode)",
+        Direction::EnglishToTypography => "Typography output",
     }
 }
 
@@ -218,7 +256,14 @@ fn parse_args(args: &[String]) -> Result<(String, String, Direction), String> {
                 if i >= args.len() {
                     return Err("Missing value for --input".to_string());
                 }
-                input = Some(args[i].clone());
+
+                let mut input_parts = vec![args[i].clone()];
+                while i + 1 < args.len() && !args[i + 1].starts_with("--") {
+                    i += 1;
+                    input_parts.push(args[i].clone());
+                }
+
+                input = Some(input_parts.join(" "));
             }
             "--format" => {
                 i += 1;
@@ -232,9 +277,9 @@ fn parse_args(args: &[String]) -> Result<(String, String, Direction), String> {
                 if i >= args.len() {
                     return Err("Missing value for --direction".to_string());
                 }
-                direction = match args[i].as_str() {
-                    "typography-to-english" => Direction::TypographyToEnglish,
-                    "english-to-typography" => Direction::EnglishToTypography,
+                let provided = args[i].as_str();
+                direction = match provided {
+                    "typography-to-english" | "english-to-typography" => Direction::EnglishToTypography,
                     _ => return Err("Invalid value for --direction".to_string()),
                 };
             }
@@ -300,6 +345,14 @@ mod tests {
     }
 
     #[test]
+    fn stylizes_plain_english_text_when_no_symbol_replacements_match() {
+        let input = "Abel";
+        let out = translate(input, Direction::EnglishToTypography);
+        assert_eq!(out.translated, "𝐀𝐛𝐞𝐥");
+        assert!(!out.replacements.is_empty());
+    }
+
+    #[test]
     fn renders_json_output() {
         let out = translate("© 2026", Direction::TypographyToEnglish);
         let json = to_json(&out);
@@ -315,9 +368,39 @@ mod tests {
     }
 
     #[test]
+    fn cli_direction_flag_always_outputs_typography() {
+        let args = vec![
+            "app".to_string(),
+            "--input".to_string(),
+            "Abel".to_string(),
+            "--direction".to_string(),
+            "typography-to-english".to_string(),
+        ];
+        let (input, _, direction) = parse_args(&args).expect("parse should succeed");
+        let out = translate(&input, direction);
+        assert_eq!(out.translated, "𝐀𝐛𝐞𝐥");
+    }
+
+    #[test]
     fn parse_args_requires_input() {
         let args = vec!["app".to_string(), "--format".to_string(), "json".to_string()];
         let result = parse_args(&args);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_args_accepts_unquoted_multi_word_input() {
+        let args = vec![
+            "app".to_string(),
+            "--input".to_string(),
+            "Hello".to_string(),
+            "world".to_string(),
+            "--format".to_string(),
+            "plain".to_string(),
+        ];
+
+        let result = parse_args(&args).expect("expected arguments to parse");
+        assert_eq!(result.0, "Hello world");
+        assert_eq!(result.1, "plain");
     }
 }

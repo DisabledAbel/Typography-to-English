@@ -45,10 +45,9 @@ if (output.textContent !== '“Hello…” ™') {
 }
 
 input.value = '“Rust™ — ﬁne… really”';
-direction.value = 'typography-to-english';
 listeners.convert_click();
-if (output.textContent !== '"Rust(TM) -- fine... really"') {
-  throw new Error(`Expected typography->english output, got: ${output.textContent}`);
+if (output.textContent === '"Rust(TM) -- fine... really"') {
+  throw new Error(`Expected typography output, got english output: ${output.textContent}`);
 }
 
 console.log('Web UI translation smoke test passed');
