@@ -28,15 +28,17 @@ const input = { value: '', addEventListener: (e, cb) => { listeners[`input_${e}`
 const direction = { value: 'english-to-typography', addEventListener: (e, cb) => { listeners[`direction_${e}`] = cb; } };
 const output = { textContent: '' };
 const json = { textContent: '' };
-const convert = { addEventListener: (e, cb) => { listeners[`convert_${e}`] = cb; } };
+let copiedText = '';
+const copyOutput = { addEventListener: (e, cb) => { listeners[`copy_${e}`] = cb; } };
+const navigator = { clipboard: { writeText: async (text) => { copiedText = text; } } };
 
 const document = {
   readyState: 'complete',
-  getElementById: (id) => ({ input, output, json, direction, convert }[id]),
+  getElementById: (id) => ({ input, output, json, direction, 'copy-output': copyOutput }[id]),
   addEventListener: () => {}
 };
 
-vm.runInNewContext(code, { document, JSON, setTimeout });
+vm.runInNewContext(code, { document, navigator, JSON, setTimeout });
 
 input.value = '"Hello..." (TM)';
 listeners.input_input();
@@ -45,9 +47,14 @@ if (output.textContent !== '“Hello…” ™') {
 }
 
 input.value = '“Rust™ — ﬁne… really”';
-listeners.convert_click();
+listeners.input_input();
 if (output.textContent === '"Rust(TM) -- fine... really"') {
   throw new Error(`Expected typography output, got english output: ${output.textContent}`);
+}
+
+listeners.copy_click();
+if (copiedText !== output.textContent) {
+  throw new Error(`Expected copied text to equal output. copied="${copiedText}" output="${output.textContent}"`);
 }
 
 console.log('Web UI translation smoke test passed');
