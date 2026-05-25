@@ -188,7 +188,7 @@
       const direction = document.getElementById('direction');
       const convert = document.getElementById('convert');
       function render() {
-        const result = translate(input.value || '', "english-to-typography");
+        const result = translate(input.value || '', direction.value);
         output.textContent = result.translated;
         json.textContent = JSON.stringify(result, null, 2);
       }
