@@ -47,6 +47,7 @@
       font-size: 15px;
       resize: vertical;
     }
+    .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
     button {
       border: 0;
       border-radius: 10px;
@@ -58,7 +59,6 @@
       width: 160px;
     }
     button:hover { background: var(--accent-soft); }
-    .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
     pre {
       background: #1a110d;
       border: 1px solid var(--border);
@@ -76,25 +76,25 @@
 <body>
   <main class="card">
     <h1>Typography Translator</h1>
-    <p>Two-way converter: Typography ⇄ English, fully client-side for GitHub Pages.</p>
+    <p>Two-way converter: Typography ⇄ English, fully client-side (Vercel-ready). Tip: use quotes, --, ..., (TM), fi/fl, etc. to see changes.</p>
     <div class="grid">
       <label class="label" for="input">Input</label>
-      <textarea id="input" placeholder="Paste text like: “Rust™ — ﬁne… really”"></textarea>
+      <textarea id="input" placeholder='Type text like: "Rust..." (TM)'></textarea>
       <div class="row">
-        <button id="convert">Translate</button>
+        <button id="convert" type="button">Translate</button>
         <label for="direction" class="label">Direction:
           <select id="direction">
+            <option value="english-to-typography" selected>English → Typography</option>
             <option value="typography-to-english">Typography → English</option>
-            <option value="english-to-typography">English → Typography</option>
           </select>
         </label>
-        <span class="label">Client-side only (GitHub Pages compatible)</span>
+        <span class="label">Client-side only (Vercel static deploy compatible)</span>
       </div>
       <label class="label" for="output">Translated</label>
       <pre id="output"></pre>
       <label class="label" for="json">JSON</label>
       <pre id="json"></pre>
-      <p class="footnote">Tip: set GitHub Pages source to the <code>docs/</code> folder.</p>
+      <p id="status" class="footnote" aria-live="polite"></p>
     </div>
   </main>
 
@@ -103,27 +103,6 @@
       ["“", '"'], ["”", '"'], ["‘", "'"], ["’", "'"], ["—", " -- "], ["–", " - "],
       ["…", "..."], ["•", "*"], ["™", "(TM)"], ["®", "(R)"], ["©", "(C)"], ["½", "1/2"],
       ["¼", "1/4"], ["¾", "3/4"], ["ﬁ", "fi"], ["ﬂ", "fl"], ["\u00A0", " "]
-];
-
-    const englishToTypographyMap = [
-      [" -- ", "—"], [" - ", "–"],
-      ["...", "…"], ["*", "•"], ["(TM)", "™"], ["(R)", "®"], ["(C)", "©"], ["1/2", "½"],
-      ["1/4", "¼"], ["3/4", "¾"], ["fi", "ﬁ"], ["fl", "ﬂ"]
-    ];
-
-    const englishToTypographyMap = [
-      [" -- ", "—"], [" - ", "–"], ["...", "…"], ["(TM)", "™"], ["(R)", "®"], ["(C)", "©"],
-      ["1/2", "½"], ["1/4", "¼"], ["3/4", "¾"], ["fi", "ﬁ"], ["fl", "ﬂ"], ["*", "•"]
-    ];
-
-    const englishToTypographyMap = [
-      [" -- ", "—"], [" - ", "–"], ["...", "…"], ["(TM)", "™"], ["(R)", "®"], ["(C)", "©"],
-      ["1/2", "½"], ["1/4", "¼"], ["3/4", "¾"], ["fi", "ﬁ"], ["fl", "ﬂ"], ["*", "•"]
-    ];
-
-    const englishToTypographyMap = [
-      [" -- ", "—"], [" - ", "–"], ["...", "…"], ["(TM)", "™"], ["(R)", "®"], ["(C)", "©"],
-      ["1/2", "½"], ["1/4", "¼"], ["3/4", "¾"], ["fi", "ﬁ"], ["fl", "ﬂ"], ["*", "•"]
     ];
 
     const englishToTypographyMap = [
@@ -136,47 +115,69 @@
     }
 
     function applyContextualQuotes(text, replacements) {
-      let result = text;
+      let result = "";
       let doubleQuoteOpen = true;
       let singleQuoteOpen = true;
 
-      // Replace double quotes with context-aware typographic quotes
-      result = result.replace(/"/g, () => {
-        const replacement = doubleQuoteOpen ? """ : """;
-        doubleQuoteOpen = !doubleQuoteOpen;
-        return replacement;
-      });
+      for (const ch of text) {
+        if (ch === '"') {
+          result += doubleQuoteOpen ? "“" : "”";
+          doubleQuoteOpen = !doubleQuoteOpen;
+        } else if (ch === "'") {
+          result += singleQuoteOpen ? "‘" : "’";
+          singleQuoteOpen = !singleQuoteOpen;
+        } else {
+          result += ch;
+        }
+      }
 
-      // Replace single quotes with context-aware typographic quotes
-      result = result.replace(/'/g, () => {
-        const replacement = singleQuoteOpen ? "'" : "'";
-        singleQuoteOpen = !singleQuoteOpen;
-        return replacement;
-      });
-
-      // Count replacements
       const doubleCount = (text.match(/"/g) || []).length;
       const singleCount = (text.match(/'/g) || []).length;
-
-      if (doubleCount > 0) {
-        replacements.push({ from: '"', to: '"/"', count: doubleCount });
-      }
-      if (singleCount > 0) {
-        replacements.push({ from: "'", to: "'/\u2019", count: singleCount });
-      }
+      if (doubleCount > 0) replacements.push({ from: '"', to: '“/”', count: doubleCount });
+      if (singleCount > 0) replacements.push({ from: "'", to: "‘/’", count: singleCount });
 
       return result;
     }
 
-    function translate(input, direction) {
-      let text = input;
+
+    function applyEnglishTypographyHeuristics(text, replacements) {
+      const rules = [
+        { from: /\.\.\./g, to: '…', label: '...' },
+        { from: /--/g, to: '—', label: '--' },
+        { from: /\(tm\)/gi, to: '™', label: '(TM)' },
+        { from: /\(r\)/gi, to: '®', label: '(R)' },
+        { from: /\(c\)/gi, to: '©', label: '(C)' }
+      ];
+
+      for (const rule of rules) {
+        const matches = text.match(rule.from);
+        if (matches && matches.length > 0) {
+          text = text.replace(rule.from, rule.to);
+          replacements.push({ from: rule.label, to: rule.to, count: matches.length });
+        }
+      }
+
+      const apostropheMatches = text.match(/([A-Za-z])'([A-Za-z])/g);
+      if (apostropheMatches && apostropheMatches.length > 0) {
+        text = text.replace(/([A-Za-z])'([A-Za-z])/g, "$1’$2");
+        replacements.push({ from: "'", to: '’', count: apostropheMatches.length });
+      }
+
+      return text;
+    }
+
+    function normalizeDirection(directionMode) {
+      return directionMode === "typography-to-english" ? "typography-to-english" : "english-to-typography";
+    }
+
+    function translate(inputText, directionMode) {
+      const mode = normalizeDirection(directionMode);
+      let text = inputText;
       const replacements = [];
 
-      if (direction === "english-to-typography") {
-        // Apply contextual quotes first
+      if (mode === "english-to-typography") {
         text = applyContextualQuotes(text, replacements);
-
-        // Then apply other replacements
+        text = applyEnglishTypographyHeuristics(text, replacements);
         for (const [from, to] of englishToTypographyMap) {
           const count = text.split(from).length - 1;
           if (count > 0) {
@@ -184,8 +185,7 @@
             replacements.push({ from, to, count });
           }
         }
-      } else {
-        // Typography to English: apply all replacements
+      } else if (mode === "typography-to-english") {
         for (const [from, to] of typographyToEnglishMap) {
           const count = text.split(from).length - 1;
           if (count > 0) {
@@ -202,16 +202,55 @@
       };
     }
 
-    const input = document.getElementById('input');
-    const output = document.getElementById('output');
-    const json = document.getElementById('json');
-    const direction = document.getElementById('direction');
+    let isSetupComplete = false;
 
-    document.getElementById('convert').addEventListener('click', () => {
-      const result = translate(input.value || '', direction.value);
-      output.textContent = result.translated;
-      json.textContent = JSON.stringify(result, null, 2);
-    });
+    function setupTranslator() {
+      if (isSetupComplete) return;
+
+      const input = document.getElementById('input');
+      const output = document.getElementById('output');
+      const json = document.getElementById('json');
+      const direction = document.getElementById('direction');
+      const convert = document.getElementById('convert');
+      const status = document.getElementById('status');
+
+      if (!input || !output || !json || !direction) {
+        if (status) status.textContent = 'Translator failed to initialize.';
+        return;
+      }
+
+      function render() {
+        try {
+          const selectedDirection = normalizeDirection(direction.value);
+          if (direction.value !== selectedDirection) direction.value = selectedDirection;
+          const result = translate(input.value || '', selectedDirection);
+          output.textContent = result.translated;
+          json.textContent = JSON.stringify(result, null, 2);
+          const replacementCount = result.replacements.reduce((sum, item) => sum + item.count, 0);
+          if (status) {
+            status.textContent = replacementCount > 0
+              ? `Updated (${selectedDirection}) with ${replacementCount} replacement${replacementCount === 1 ? '' : 's'}.`
+              : `Updated (${selectedDirection}) with no convertible typography tokens.`;
+          }
+        } catch (err) {
+          if (status) status.textContent = `Translation error: ${String(err)}`;
+        }
+      }
+
+      input.addEventListener('input', render);
+      input.addEventListener('keyup', render);
+      input.addEventListener('paste', () => setTimeout(render, 0));
+      direction.addEventListener('change', render);
+      if (convert) convert.addEventListener('click', render);
+      render();
+      isSetupComplete = true;
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setupTranslator, { once: true });
+    }
+    window.addEventListener('load', setupTranslator, { once: true });
+    setupTranslator();
   </script>
 </body>
 </html>
