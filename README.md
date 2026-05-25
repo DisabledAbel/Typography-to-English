@@ -1,26 +1,48 @@
-# Typography Translator (Two-way)
+# Typography Front Maker
 
-A Rust-based English ↔ Typography translator with CLI outputs (`plain`, `json`, `markdown`, `toon`) plus a static web UI.
+Typography Front Maker is an open-source tool for creating and exporting beautiful typography designs, font styles, and frontend-ready text components with live previews.
 
-## Vercel deployment
+## Features
 
-1. Push this repo to GitHub.
-2. In Vercel, import the GitHub repository.
-3. Keep the default settings (no build command required).
-4. Deploy.
+* Live typography preview
+* Font customization
+* Spacing and alignment controls
+* Gradient and shadow effects
+* Responsive typography support
+* Modern frontend-focused workflow
 
-The app is fully client-side and ships with `vercel.json` rewrites so all routes resolve to `index.html`.
+## Getting Started
 
-## CLI usage
-
-```bash
-cargo run -- --input '“Rust™ — ﬁne… really”' --format json --direction typography-to-english
-cargo run -- --input '“Rust™ — ﬁne… really”' --format markdown --direction typography-to-english
-cargo run -- --input '"Rust..." (TM) is fine' --format plain --direction english-to-typography
-```
-
-## Local web server usage (optional)
+### Clone the repository
 
 ```bash
-cargo run -- --serve --port 8080
+git clone https://github.com/DisabledAbel/Typography-front-maker.git
 ```
+
+### Go into the project directory
+
+```bash
+cd Typography-front-maker
+```
+
+### Install dependencies
+
+```bash
+npm install
+```
+
+### Start the development server
+
+```bash
+npm run dev
+```
+
+## Build
+
+```bash
+npm run build
+```
+
+## Contributing
+
+Pull requests, feature ideas, and improvements are welcome
