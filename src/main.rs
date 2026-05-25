@@ -129,6 +129,18 @@ fn translate(input: &str, direction: Direction) -> Translation {
                     replacements.push(Replacement { from, to, count });
                 }
             }
+
+            if replacements.is_empty() {
+                if let Some(stylized) = stylize_ascii_letters(&text) {
+                    let letter_count = stylized.chars().filter(|c| c.is_alphabetic()).count();
+                    text = stylized;
+                    replacements.push(Replacement {
+                        from: "A-Z/a-z",
+                        to: "Mathematical bold letters",
+                        count: letter_count,
+                    });
+                }
+            }
         }
         Direction::TypographyToEnglish => {
             // Apply all replacements
@@ -151,6 +163,32 @@ fn translate(input: &str, direction: Direction) -> Translation {
 
 fn normalize_spacing(input: &str) -> String {
     input.split_whitespace().collect::<Vec<_>>().join(" ").trim().to_string()
+}
+
+fn stylize_ascii_letters(input: &str) -> Option<String> {
+    let mut changed = false;
+    let mut output = String::with_capacity(input.len());
+
+    for ch in input.chars() {
+        if ch.is_ascii_uppercase() {
+            let offset = (ch as u32) - ('A' as u32);
+            if let Some(styled) = char::from_u32(0x1D400 + offset) {
+                output.push(styled);
+                changed = true;
+                continue;
+            }
+        } else if ch.is_ascii_lowercase() {
+            let offset = (ch as u32) - ('a' as u32);
+            if let Some(styled) = char::from_u32(0x1D41A + offset) {
+                output.push(styled);
+                changed = true;
+                continue;
+            }
+        }
+        output.push(ch);
+    }
+
+    changed.then_some(output)
 }
 
 fn to_json(t: &Translation) -> String {
@@ -303,6 +341,14 @@ mod tests {
         let input = "\"Hello...\" (TM)";
         let out = translate(input, Direction::EnglishToTypography);
         assert_eq!(out.translated, "“Hello…” ™");
+        assert!(!out.replacements.is_empty());
+    }
+
+    #[test]
+    fn stylizes_plain_english_text_when_no_symbol_replacements_match() {
+        let input = "Abel";
+        let out = translate(input, Direction::EnglishToTypography);
+        assert_eq!(out.translated, "𝐀𝐛𝐞𝐥");
         assert!(!out.replacements.is_empty());
     }
 
