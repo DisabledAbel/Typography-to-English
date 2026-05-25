@@ -36,8 +36,7 @@ const document = {
   addEventListener: () => {}
 };
 
-const window = { addEventListener: (_e, cb) => { if (cb) cb(); } };
-vm.runInNewContext(code, { document, window, JSON, setTimeout });
+vm.runInNewContext(code, { document, JSON, setTimeout });
 
 input.value = '"Hello..." (TM)';
 listeners.input_input();

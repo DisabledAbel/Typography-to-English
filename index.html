@@ -48,17 +48,6 @@
       resize: vertical;
     }
     .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-    button {
-      border: 0;
-      border-radius: 10px;
-      background: var(--accent);
-      color: #28170d;
-      padding: 11px 16px;
-      font-weight: 700;
-      cursor: pointer;
-      width: 160px;
-    }
-    button:hover { background: var(--accent-soft); }
     pre {
       background: #1a110d;
       border: 1px solid var(--border);
@@ -76,12 +65,11 @@
 <body>
   <main class="card">
     <h1>Typography Translator</h1>
-    <p>Two-way converter: Typography ⇄ English, fully client-side (Vercel-ready). Tip: use quotes, --, ..., (TM), fi/fl, etc. to see changes.</p>
+    <p>Two-way converter: Typography ⇄ English, fully client-side (Vercel-ready).</p>
     <div class="grid">
       <label class="label" for="input">Input</label>
-      <textarea id="input" placeholder='Type text like: "Rust..." (TM)'></textarea>
+      <textarea id="input" placeholder='Paste text like: “Rust™ — ﬁne… really”'></textarea>
       <div class="row">
-        <button id="convert" type="button">Translate</button>
         <label for="direction" class="label">Direction:
           <select id="direction">
             <option value="english-to-typography" selected>English → Typography</option>
@@ -94,7 +82,6 @@
       <pre id="output"></pre>
       <label class="label" for="json">JSON</label>
       <pre id="json"></pre>
-      <p id="status" class="footnote" aria-live="polite"></p>
     </div>
   </main>
 
@@ -139,45 +126,12 @@
       return result;
     }
 
-
-    function applyEnglishTypographyHeuristics(text, replacements) {
-      const rules = [
-        { from: /\.\.\./g, to: '…', label: '...' },
-        { from: /--/g, to: '—', label: '--' },
-        { from: /\(tm\)/gi, to: '™', label: '(TM)' },
-        { from: /\(r\)/gi, to: '®', label: '(R)' },
-        { from: /\(c\)/gi, to: '©', label: '(C)' }
-      ];
-
-      for (const rule of rules) {
-        const matches = text.match(rule.from);
-        if (matches && matches.length > 0) {
-          text = text.replace(rule.from, rule.to);
-          replacements.push({ from: rule.label, to: rule.to, count: matches.length });
-        }
-      }
-
-      const apostropheMatches = text.match(/([A-Za-z])'([A-Za-z])/g);
-      if (apostropheMatches && apostropheMatches.length > 0) {
-        text = text.replace(/([A-Za-z])'([A-Za-z])/g, "$1’$2");
-        replacements.push({ from: "'", to: '’', count: apostropheMatches.length });
-      }
-
-      return text;
-    }
-
-    function normalizeDirection(directionMode) {
-      return directionMode === "typography-to-english" ? "typography-to-english" : "english-to-typography";
-    }
-
     function translate(inputText, directionMode) {
-      const mode = normalizeDirection(directionMode);
       let text = inputText;
       const replacements = [];
 
-      if (mode === "english-to-typography") {
+      if (directionMode === "english-to-typography") {
         text = applyContextualQuotes(text, replacements);
-        text = applyEnglishTypographyHeuristics(text, replacements);
         for (const [from, to] of englishToTypographyMap) {
           const count = text.split(from).length - 1;
           if (count > 0) {
@@ -185,7 +139,7 @@
             replacements.push({ from, to, count });
           }
         }
-      } else if (mode === "typography-to-english") {
+      } else {
         for (const [from, to] of typographyToEnglishMap) {
           const count = text.split(from).length - 1;
           if (count > 0) {
@@ -202,55 +156,22 @@
       };
     }
 
-    let isSetupComplete = false;
-
     function setupTranslator() {
-      if (isSetupComplete) return;
-
       const input = document.getElementById('input');
       const output = document.getElementById('output');
       const json = document.getElementById('json');
       const direction = document.getElementById('direction');
       const convert = document.getElementById('convert');
-      const status = document.getElementById('status');
 
-      if (!input || !output || !json || !direction) {
-        if (status) status.textContent = 'Translator failed to initialize.';
-        return;
-      }
-
-      function render() {
-        try {
-          const selectedDirection = normalizeDirection(direction.value);
-          if (direction.value !== selectedDirection) direction.value = selectedDirection;
-          const result = translate(input.value || '', selectedDirection);
-          output.textContent = result.translated;
-          json.textContent = JSON.stringify(result, null, 2);
-          const replacementCount = result.replacements.reduce((sum, item) => sum + item.count, 0);
-          if (status) {
-            status.textContent = replacementCount > 0
-              ? `Updated (${selectedDirection}) with ${replacementCount} replacement${replacementCount === 1 ? '' : 's'}.`
-              : `Updated (${selectedDirection}) with no convertible typography tokens.`;
-          }
-        } catch (err) {
-          if (status) status.textContent = `Translation error: ${String(err)}`;
-        }
-      }
-
-      input.addEventListener('input', render);
-      input.addEventListener('keyup', render);
-      input.addEventListener('paste', () => setTimeout(render, 0));
-      direction.addEventListener('change', render);
-      if (convert) convert.addEventListener('click', render);
-      render();
-      isSetupComplete = true;
+    function render() {
+      const result = translate(input.value || '', direction.value);
+      output.textContent = result.translated;
+      json.textContent = JSON.stringify(result, null, 2);
     }
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', setupTranslator, { once: true });
-    }
-    window.addEventListener('load', setupTranslator, { once: true });
-    setupTranslator();
+    input.addEventListener('input', render);
+    direction.addEventListener('change', render);
+    render();
   </script>
 </body>
 </html>
