@@ -234,8 +234,8 @@ fn to_toon(t: &Translation, direction: Direction) -> String {
 
 fn direction_label(direction: Direction) -> &'static str {
     match direction {
-        Direction::TypographyToEnglish => "Typography to English",
-        Direction::EnglishToTypography => "English to Typography",
+        Direction::TypographyToEnglish => "Typography output (Typography mode)",
+        Direction::EnglishToTypography => "Typography output",
     }
 }
 
@@ -277,9 +277,9 @@ fn parse_args(args: &[String]) -> Result<(String, String, Direction), String> {
                 if i >= args.len() {
                     return Err("Missing value for --direction".to_string());
                 }
-                direction = match args[i].as_str() {
-                    "typography-to-english" => Direction::TypographyToEnglish,
-                    "english-to-typography" => Direction::EnglishToTypography,
+                let provided = args[i].as_str();
+                direction = match provided {
+                    "typography-to-english" | "english-to-typography" => Direction::EnglishToTypography,
                     _ => return Err("Invalid value for --direction".to_string()),
                 };
             }
@@ -365,6 +365,20 @@ mod tests {
         let md = to_markdown(&out, Direction::TypographyToEnglish);
         assert!(md.contains("# Translation"));
         assert!(md.contains("`•` -> `*`"));
+    }
+
+    #[test]
+    fn cli_direction_flag_always_outputs_typography() {
+        let args = vec![
+            "app".to_string(),
+            "--input".to_string(),
+            "Abel".to_string(),
+            "--direction".to_string(),
+            "typography-to-english".to_string(),
+        ];
+        let (input, _, direction) = parse_args(&args).expect("parse should succeed");
+        let out = translate(&input, direction);
+        assert_eq!(out.translated, "𝐀𝐛𝐞𝐥");
     }
 
     #[test]
