@@ -71,7 +71,11 @@ fn apply_contextual_quotes(text: &str, replacements: &mut Vec<Replacement>) -> S
     while let Some(ch) = chars.next() {
         match ch {
             '"' => {
-                result.push_str(if double_quote_open { "\u{201c}" } else { "\u{201d}" });
+                result.push_str(if double_quote_open {
+                    "\u{201c}"
+                } else {
+                    "\u{201d}"
+                });
                 double_quote_open = !double_quote_open;
                 double_count += 1;
             }
@@ -85,7 +89,11 @@ fn apply_contextual_quotes(text: &str, replacements: &mut Vec<Replacement>) -> S
                     result.push_str("\u{2019}");
                 } else {
                     // It's a paired quote - alternate between opening and closing
-                    result.push_str(if single_quote_open { "\u{2018}" } else { "\u{2019}" });
+                    result.push_str(if single_quote_open {
+                        "\u{2018}"
+                    } else {
+                        "\u{2019}"
+                    });
                     single_quote_open = !single_quote_open;
                 }
                 single_count += 1;
@@ -162,7 +170,12 @@ fn translate(input: &str, direction: Direction) -> Translation {
 }
 
 fn normalize_spacing(input: &str) -> String {
-    input.split_whitespace().collect::<Vec<_>>().join(" ").trim().to_string()
+    input
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .trim()
+        .to_string()
 }
 
 fn stylize_ascii_letters(input: &str) -> Option<String> {
@@ -198,7 +211,10 @@ fn to_json(t: &Translation) -> String {
 fn to_markdown(t: &Translation, direction: Direction) -> String {
     let mut output = String::new();
     output.push_str("# Translation\n\n");
-    output.push_str(&format!("## Direction\n> {}\n\n", direction_label(direction)));
+    output.push_str(&format!(
+        "## Direction\n> {}\n\n",
+        direction_label(direction)
+    ));
     output.push_str("## Original\n");
     output.push_str(&format!("> {}\n\n", t.original));
     output.push_str("## Translated\n");
@@ -279,7 +295,9 @@ fn parse_args(args: &[String]) -> Result<(String, String, Direction), String> {
                 }
                 let provided = args[i].as_str();
                 direction = match provided {
-                    "typography-to-english" | "english-to-typography" => Direction::EnglishToTypography,
+                    "typography-to-english" | "english-to-typography" => {
+                        Direction::EnglishToTypography
+                    }
                     _ => return Err("Invalid value for --direction".to_string()),
                 };
             }
@@ -383,7 +401,11 @@ mod tests {
 
     #[test]
     fn parse_args_requires_input() {
-        let args = vec!["app".to_string(), "--format".to_string(), "json".to_string()];
+        let args = vec![
+            "app".to_string(),
+            "--format".to_string(),
+            "json".to_string(),
+        ];
         let result = parse_args(&args);
         assert!(result.is_err());
     }
