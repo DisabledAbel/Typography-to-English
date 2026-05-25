@@ -76,6 +76,7 @@
             <option value="typography-to-english">Typography → English</option>
           </select>
         </label>
+        <button id="convert" type="button">Convert</button>
         <span class="label">Client-side only (Vercel static deploy compatible)</span>
       </div>
       <label class="label" for="output">Translated</label>
@@ -162,16 +163,23 @@
       const json = document.getElementById('json');
       const direction = document.getElementById('direction');
       const convert = document.getElementById('convert');
+      function render() {
+        const result = translate(input.value || '', direction.value);
+        output.textContent = result.translated;
+        json.textContent = JSON.stringify(result, null, 2);
+      }
 
-    function render() {
-      const result = translate(input.value || '', direction.value);
-      output.textContent = result.translated;
-      json.textContent = JSON.stringify(result, null, 2);
+      input.addEventListener('input', render);
+      direction.addEventListener('change', render);
+      convert.addEventListener('click', render);
+      render();
     }
 
-    input.addEventListener('input', render);
-    direction.addEventListener('change', render);
-    render();
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setupTranslator);
+    } else {
+      setupTranslator();
+    }
   </script>
 </body>
 </html>
