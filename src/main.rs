@@ -218,7 +218,14 @@ fn parse_args(args: &[String]) -> Result<(String, String, Direction), String> {
                 if i >= args.len() {
                     return Err("Missing value for --input".to_string());
                 }
-                input = Some(args[i].clone());
+
+                let mut input_parts = vec![args[i].clone()];
+                while i + 1 < args.len() && !args[i + 1].starts_with("--") {
+                    i += 1;
+                    input_parts.push(args[i].clone());
+                }
+
+                input = Some(input_parts.join(" "));
             }
             "--format" => {
                 i += 1;
@@ -319,5 +326,21 @@ mod tests {
         let args = vec!["app".to_string(), "--format".to_string(), "json".to_string()];
         let result = parse_args(&args);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_args_accepts_unquoted_multi_word_input() {
+        let args = vec![
+            "app".to_string(),
+            "--input".to_string(),
+            "Hello".to_string(),
+            "world".to_string(),
+            "--format".to_string(),
+            "plain".to_string(),
+        ];
+
+        let result = parse_args(&args).expect("expected arguments to parse");
+        assert_eq!(result.0, "Hello world");
+        assert_eq!(result.1, "plain");
     }
 }
