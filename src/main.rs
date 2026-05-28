@@ -17,8 +17,7 @@ struct Replacement {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Direction {
-    TypographyToEnglish,
-    EnglishToTypography,
+    Typography Front Maker,
 }
 
 fn typography_map() -> Vec<(&'static str, &'static str)> {
@@ -125,7 +124,7 @@ fn translate(input: &str, direction: Direction) -> Translation {
     let mut replacements = Vec::new();
 
     match direction {
-        Direction::EnglishToTypography => {
+        Direction::Typography Front Maker => {
             // Apply contextual quotes first
             text = apply_contextual_quotes(&text, &mut replacements);
 
@@ -150,7 +149,7 @@ fn translate(input: &str, direction: Direction) -> Translation {
                 }
             }
         }
-        Direction::TypographyToEnglish => {
+        Direction::Typography Front Maker => {
             // Apply all replacements
             for (from, to) in english_map() {
                 let count = text.matches(from).count();
